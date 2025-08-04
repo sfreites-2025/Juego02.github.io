@@ -107,11 +107,12 @@
 </div>
 
 <script>
+  // Configuración inicial
   const mazeElement = document.getElementById('maze');
   const movesCounter = document.getElementById('moves');
   const pillsCounter = document.getElementById('pills');
 
-  const mazeMap = [
+  const mazeMapOriginal = [
     [1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1],
     [1,2,0,0,1,0,0,0,1,4,1,0,0,0,1,0,0,3,1],
     [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
@@ -135,14 +136,15 @@
     [1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1],
   ];
 
-  const rows = mazeMap.length;
-  const cols = mazeMap[0].length;
+  const rows = mazeMapOriginal.length;
+  const cols = mazeMapOriginal[0].length;
 
+  let mazeMap = []; // Copia dinámica del mapa para modificar
   let playerPosition = { x:0, y:0 };
   let moves = 0;
   let pillsCollected = 0;
 
-  // Declaramos fantasmas con sus IDs desde el mapa (valores 5-8)
+  // Fantasmas con posición, tipo y dirección
   let ghosts = [
     {x:0, y:0, dx:0, dy:0, type: 'blinky'}, // rojo
     {x:0, y:0, dx:0, dy:0, type: 'pinky'},  // rosa
@@ -150,39 +152,51 @@
     {x:0, y:0, dx:0, dy:0, type: 'clyde'}   // naranja
   ];
 
-  // Distintas posiciones iniciales para el jugador cuando muere
-  const playerStartPositions = [];
+  let playerStartPositions = [];
+  let ghostsInitPos = [];
 
-  // Guardamos posición inicial fantasmas y jugador según mapa
-  function scanPositions(){
-    playerStartPositions.length = 0;
-    ghosts.forEach(g=>{ g.x=0; g.y=0; g.dx=0; g.dy=0; })
+  // Proporciona las posiciones iniciales para el respawn
+  function scanMapForPositions() {
+    playerStartPositions = [];
+    ghostsInitPos = [];
+    mazeMap = JSON.parse(JSON.stringify(mazeMapOriginal));
     for(let y=0; y<rows; y++){
       for(let x=0; x<cols; x++){
         const cell = mazeMap[y][x];
-        if(cell === 2) {
+        if(cell === 2){
+          playerStartPositions.push({x, y});
+          mazeMap[y][x] = 0;
           playerPosition = {x, y};
-          playerStartPositions.push({x,y});
-          mazeMap[y][x] = 0;
         }
-        if(cell >= 5 && cell <= 8) {
-          const index = cell - 5;
-          ghosts[index].x = x;
-          ghosts[index].y = y;
-          ghosts[index].dx = 0;
-          ghosts[index].dy = 0;
+        if(cell >= 5 && cell <= 8){
+          ghostsInitPos[cell - 5] = {x, y};
           mazeMap[y][x] = 0;
-        }
-        if(cell === 4){
-          pillsAvailable.push({x,y});
         }
       }
     }
   }
 
-  let pillsAvailable = [];
+  // Pastillas dinámicas
+  const totalPills = 7;
   let pillsOnMap = new Set();
 
+  // Añade las pastillas iniciales a posiciones aleatorias válidas (no muros, ni player/ghosts)
+  function fillInitialPills(){
+    pillsOnMap.clear();
+    let count = 0;
+    while(count < totalPills){
+      const x = Math.floor(Math.random() * cols);
+      const y = Math.floor(Math.random() * rows);
+      if(mazeMap[y][x] === 0 && !pillsOnMap.has(`${x},${y}`) &&
+          !(playerPosition.x === x && playerPosition.y === y) &&
+          !ghosts.some(g => g.x === x && g.y === y)){
+        pillsOnMap.add(`${x},${y}`);
+        count++;
+      }
+    }
+  }
+
+  // Construye el grid visual del laberinto con celdas y elementos
   function createMaze() {
     mazeElement.style.gridTemplateColumns = `repeat(${cols}, 30px)`;
     mazeElement.style.gridTemplateRows = `repeat(${rows}, 30px)`;
@@ -197,11 +211,13 @@
           cellDiv.classList.add('wall');
         } else {
           cellDiv.classList.add('path');
-          // Si hay pastilla, agregar pastilla visual
-          if(isPillAt(x,y)){
+          if(pillsOnMap.has(`${x},${y}`)){
             const pillEl = document.createElement('div');
             pillEl.classList.add('pill');
             cellDiv.appendChild(pillEl);
+          }
+          if(mazeMap[y][x] === 3){
+            cellDiv.classList.add('goal');
           }
         }
         cellDiv.id = `cell-${x}-${y}`;
@@ -213,20 +229,17 @@
     updatePillsCounter();
   }
 
-  // Ver si hay pastilla en esa posición
-  function isPillAt(x,y){
-    return pillsOnMap.has(`${x},${y}`);
-  }
-
+  // Actualiza la posición del jugador visualmente
   function drawPlayer(){
     document.querySelectorAll('.player').forEach(el => el.classList.remove('player'));
     const cell = document.getElementById(`cell-${playerPosition.x}-${playerPosition.y}`);
     if(cell) cell.classList.add('player');
   }
 
+  // Actualiza la posición de los fantasmas visualmente
   function drawGhosts(){
     document.querySelectorAll('.ghost').forEach(el => el.classList.remove('ghost', 'blinky', 'pinky', 'inky', 'clyde'));
-    ghosts.forEach((g,i) => {
+    ghosts.forEach((g) => {
       const cell = document.getElementById(`cell-${g.x}-${g.y}`);
       if(cell){
         cell.classList.add('ghost', g.type);
@@ -258,7 +271,7 @@
     checkGoal();
   }
 
-  // Colección de pastillas con reaparecer aleatorio
+  // Recolectar pastilla, quitarla y crear otra aleatoriamente
   function checkPillCollection(x,y){
     const key = `${x},${y}`;
     if(pillsOnMap.has(key)){
@@ -278,14 +291,13 @@
     }
   }
 
-  // Spawnear pastilla aleatoria en casilla camino vacía sin player ni fantasmas ni pastilla
   function spawnRandomPill(){
     const emptySpaces = [];
     for(let y=0; y<rows; y++){
       for(let x=0; x<cols; x++){
-        if(mazeMap[y][x] === 0 && !pillsOnMap.has(`${x},${y}`) && !(playerPosition.x === x && playerPosition.y === y)
-          && !ghosts.some(g => g.x===x && g.y===y)
-        ){
+        if(mazeMap[y][x] === 0 && !pillsOnMap.has(`${x},${y}`) &&
+           !(playerPosition.x===x && playerPosition.y===y) &&
+           !ghosts.some(g=>g.x===x && g.y===y)){
           emptySpaces.push({x,y});
         }
       }
@@ -294,354 +306,22 @@
       const index = Math.floor(Math.random()*emptySpaces.length);
       const pos = emptySpaces[index];
       pillsOnMap.add(`${pos.x},${pos.y}`);
-
-      // Visual
       const cell = document.getElementById(`cell-${pos.x}-${pos.y}`);
       if(cell){
-        const pillEl = document.createElement('div');
-        pillEl.classList.add('pill');
-        cell.appendChild(pillEl);
+        const pill = document.createElement('div');
+        pill.classList.add('pill');
+        cell.appendChild(pill);
       }
     }
   }
 
-  // Reiniciar jugador a posición aleatoria en caminos abiertos
-  function resetPlayerPosition(){
-    const openSpaces = [];
-    for(let y=0; y<rows; y++){
-      for(let x=0; x<cols; x++){
-        if(mazeMap[y][x] === 0){
-          openSpaces.push({x,y});
-        }
-      }
-    }
-    if(openSpaces.length){
-      const pos = openSpaces[Math.floor(Math.random()*openSpaces.length)];
-      playerPosition.x = pos.x;
-      playerPosition.y = pos.y;
-      drawPlayer();
-    }
-  }
-
-  // Mover fantasmas con patrones de comportamiento diferentes
-  function moveGhosts(){
-    ghosts.forEach(g => {
-      let target = {x: playerPosition.x, y: playerPosition.y};
-      switch(g.type){
-        case 'blinky': 
-          // Persigue directamente la posición del jugador
-          target = {...playerPosition};
-          break;
-        case 'pinky': 
-          // Predice posición 4 pasos hacia adelante según última dirección del jugador
-          target = predictPosition(4);
-          break;
-        case 'inky':
-          // Usa posición relativa de blinky y jugador para cálculo vectorial
-          const blinky = ghosts.find(f => f.type === 'blinky');
-          if (blinky) {
-            target = inkyTarget(blinky, playerPosition);
-          }
-          break;
-        case 'clyde':
-          // Cambia comportamiento según distancia a jugador
-          target = clydeTarget(g, playerPosition);
-          break;
-      }
-      chooseGhostMove(g, target);
-    });
-    drawGhosts();
-  }
-
-  // Predecir posición delante del jugador según último movimiento, aquí asumimos 0 porque sólo movemos con teclas actuales, mejor si se guarda dirección
-  // En este ejemplo se usará una predicción simple: 4 celdas derecha, si no posible, igual posición jugador
-  function predictPosition(steps){
-    // Opcional: se puede guardar última dirección real del jugador para mejor predicción, aquí se predice 4 hacia la derecha con wrap
-    let px = playerPosition.x + steps;
-    let py = playerPosition.y;
-    px = (px + cols) % cols;
-    py = (py + rows) % rows;
-    if(mazeMap[py][px] === 1) return {...playerPosition};
-    return {x:px, y:py};
-  }
-
-  // Inky calcula el vector 2x blinky a posición dos adelante del jugador
-  function inkyTarget(blinky, player) {
-    // Posición dos arriba (por simplicidad) del jugador con wrap
-    let px = (player.x + 0 + cols) % cols;
-    let py = (player.y - 2 + rows) % rows;
-    // Vector desde Blinky a ese punto
-    let vx = px - blinky.x;
-    let vy = py - blinky.y;
-    // Doble vector
-    let tx = (blinky.x + vx * 2 + cols) % cols;
-    let ty = (blinky.y + vy * 2 + rows) % rows;
-    if(mazeMap[ty][tx] === 1) {
-      // Si muros en la posición objetivo, fallback a jugador
-      return {...player};
-    }
-    return {x:tx, y:ty};
-  }
-
-  // Clyde persigue jugador si lejos, se aleja si cerca (distancia Manhattan >8)
-  function clydeTarget(clyde, player){
-    const dist = manhattanDist(clyde, player);
-    if(dist > 8) return {...player};
-    // Sino se posiciona en la esquina inferior izquierda del mapa
-    return {x:0, y:rows-1};
-  }
-
-  function manhattanDist(pos1, pos2){
-    const dx = Math.min(Math.abs(pos1.x - pos2.x), cols - Math.abs(pos1.x - pos2.x));
-    const dy = Math.min(Math.abs(pos1.y - pos2.y), rows - Math.abs(pos1.y - pos2.y));
-    return dx + dy;
-  }
-
-  // Elegir mejor movimiento hacia el target no chocando con muros
-  function chooseGhostMove(ghost, target){
-    // Posibles movimientos
-    const moves = [
-      {dx: 1, dy: 0},
-      {dx:-1, dy: 0},
-      {dx: 0, dy: 1},
-      {dx: 0, dy:-1}
-    ];
-    // Filtramos movimientos legales (no murallas)
-    const legalMoves = moves.filter(m => {
-      const nx = (ghost.x + m.dx + cols) % cols;
-      const ny = (ghost.y + m.dy + rows) % rows;
-      return mazeMap[ny][nx] !== 1;
-    });
-    if(legalMoves.length === 0) return;
-    // Calculamos cuál está más cerca del objetivo
-    legalMoves.sort((a,b) => {
-      const aX = (ghost.x + a.dx + cols) % cols;
-      const aY = (ghost.y + a.dy + rows) % rows;
-      const bX = (ghost.x + b.dx + cols) % cols;
-      const bY = (ghost.y + b.dy + rows) % rows;
-      const distA = manhattanDist({x:aX,y:aY}, target);
-      const distB = manhattanDist({x:bX,y:bY}, target);
-      return distA - distB;
-    });
-    // Moverse al primer movimiento óptimo escogido
-    ghost.x = (ghost.x + legalMoves[0].dx + cols) % cols;
-    ghost.y = (ghost.y + legalMoves[0].dy + rows) % rows;
-  }
-
-  // Chequear si un fantasma toca jugador
-  function checkGhostCollision(){
-    for(const g of ghosts){
-      if(g.x === playerPosition.x && g.y === playerPosition.y){
-        alert('¡Un fantasma te atrapó! Reiniciando...');
-        resetGame();
-        break;
-      }
-    }
-  }
-
-  // Chequear si jugador ganó (ha llegado a la meta con todas las pastillas recogidas)
-  function checkGoal(){
-    if (mazeMap[playerPosition.y][playerPosition.x] === 3){
-      if(pillsCollected >= 7){
-        alert(`¡Ganaste en ${moves} movimientos!`);
-        resetGame();
-      } else {
-        alert(`Debes recolectar todas las 7 pastillas para poder ganar. Pastillas recogidas: ${pillsCollected}`);
-      }
-    }
-  }
-
-  // Reinicia juego y posiciona jugador en lugar distinto
-  function resetGame(){
-    moves = 0;
-    pillsCollected = 0;
-    movesCounter.textContent = moves;
-    updatePillsCounter();
-    // Vaciar pastillas y regenerar las 7
-    pillsOnMap.clear();
-    fillInitialPills();
-
-    // Posicionar jugador en una posición aleatoria diferente
-    do {
-      const idx = Math.floor(Math.random() * playerStartPositions.length);
-      var newPos = playerStartPositions[idx];
-    } while(newPos.x === playerPosition.x && newPos.y === playerPosition.y);
-
-    playerPosition = {...newPos};
-
-    // Posicionar fantasmas en sus posiciones iniciales (predefinidas en scan)
-    ghosts.forEach((g, i) => {
-      g.x = ghostsInitPos[i].x;
-      g.y = ghostsInitPos[i].y;
-      g.dx = 0;
-      g.dy = 0;
-    });
-
-    createMaze();
-  }
-
-  // Variables globales player initial positions and ghosts initial positions
-  let ghostsInitPos = [];
-  let playerStartPositions = [];
-
-  // Para posicion inicial escanear el mapa y recoger datos
-  function scanMapForPositions() {
-    playerStartPositions =[];
-    ghostsInitPos = [];
-    for(let y=0; y<rows; y++){
-      for(let x=0; x<cols; x++){
-        if(mazeMap[y][x] === 2){
-          playerStartPositions.push({x,y});
-          mazeMap[y][x] = 0;
-        }
-        if(mazeMap[y][x] >= 5 && mazeMap[y][x] <= 8){
-          ghostsInitPos[mazeMap[y][x]-5] = {x,y};
-          mazeMap[y][x] = 0;
-        }
-      }
-    }
-  }
-
-  // Inicializamos pastillas, seteando 7 en el mapa en espacios libres aleatorios
-  const totalPills = 7;
-  let pillsOnMap = new Set();
-
-  function fillInitialPills(){
-    pillsOnMap.clear();
-    let count = 0;
-    while(count<totalPills){
-      const x = Math.floor(Math.random()*cols);
-      const y = Math.floor(Math.random()*rows);
-      if(mazeMap[y][x] === 0 && !(playerPosition.x === x && playerPosition.y === y) && !ghosts.some(g => g.x === x && g.y === y) && !pillsOnMap.has(`${x},${y}`)){
-        pillsOnMap.add(`${x},${y}`);
-        count++;
-      }
-    }
-  }
-
-  function updatePillsCounter(){
-    pillsCounter.textContent = pillsCollected;
-  }
-
-  scanMapForPositions();
-  fillInitialPills();
-
-  function createMaze() {
-    mazeElement.style.gridTemplateColumns = `repeat(${cols}, 30px)`;
-    mazeElement.style.gridTemplateRows = `repeat(${rows}, 30px)`;
-    mazeElement.innerHTML = '';
-
-    for (let y=0; y<rows; y++) {
-      for (let x=0; x<cols; x++) {
-        const cellDiv = document.createElement('div');
-        cellDiv.classList.add('cell');
-
-        if(mazeMap[y][x] === 1){
-          cellDiv.classList.add('wall');
-        } else {
-          cellDiv.classList.add('path');
-          // Pastilla si está en set
-          if(pillsOnMap.has(`${x},${y}`)){
-            const pillEl = document.createElement('div');
-            pillEl.classList.add('pill');
-            cellDiv.appendChild(pillEl);
-          }
-        }
-        cellDiv.id = `cell-${x}-${y}`;
-        mazeElement.appendChild(cellDiv);
-      }
-    }
-    drawPlayer();
-    drawGhosts();
-    updatePillsCounter();
-  }
-
-  function drawPlayer(){
-    document.querySelectorAll('.player').forEach(el => el.classList.remove('player'));
-    const cell = document.getElementById(`cell-${playerPosition.x}-${playerPosition.y}`);
-    if(cell) cell.classList.add('player');
-  }
-
-  function drawGhosts(){
-    document.querySelectorAll('.ghost').forEach(el => el.classList.remove('ghost', 'blinky', 'pinky', 'inky', 'clyde'));
-    ghosts.forEach((g,i) => {
-      const cell = document.getElementById(`cell-${g.x}-${g.y}`);
-      if(cell){
-        cell.classList.add('ghost', g.type);
-      }
-    });
-  }
-
-  window.addEventListener('keydown', e => {
-    switch(e.key) {
-      case 'ArrowUp': e.preventDefault(); movePlayer(0, -1); break;
-      case 'ArrowDown': e.preventDefault(); movePlayer(0, 1); break;
-      case 'ArrowLeft': e.preventDefault(); movePlayer(-1, 0); break;
-      case 'ArrowRight': e.preventDefault(); movePlayer(1, 0); break;
-    }
-  });
-
-  // Mover fantasmas con patrón definido cada 600ms
-  setInterval(() => {
-    ghosts.forEach(g => {
-      // Obtener target según fantasma experto
-      let target;
-      switch(g.type){
-        case 'blinky': 
-          target = {...playerPosition};
-          break;
-        case 'pinky':
-          target = predictPosition(playerPosition, 4);
-          break;
-        case 'inky':
-          const blinky = ghosts.find(f => f.type === 'blinky');
-          target = inkyTarget(blinky, playerPosition);
-          break;
-        case 'clyde':
-          target = clydeTarget(g, playerPosition);
-          break;
-      }
-      ghostMoveTowards(g, target);
-    });
-    drawGhosts();
-    checkGhostCollision();
-  }, 600);
-
-  // Métodos para patrones de ghosts (como antes)
-
-  // Predice posición delante del jugador con wrap (x,y, pasos)
-  function predictPosition(player, steps) {
-    const x = (player.x + steps + cols) % cols;
-    const y = player.y;
-    if(mazeMap[y][x] === 1) return {...player};
-    return {x, y};
-  }
-
-  function inkyTarget(blinky, player){
-    if(!blinky) return {...player};
-    let px = (player.x + 0 + cols) % cols;
-    let py = (player.y - 2 + rows) % rows;
-    let vx = px - blinky.x;
-    let vy = py - blinky.y;
-    let tx = (blinky.x + vx * 2 + cols) % cols;
-    let ty = (blinky.y + vy * 2 + rows) % rows;
-    if(mazeMap[ty][tx] === 1) return {...player};
-    return {x:tx, y:ty};
-  }
-
-  function clydeTarget(clyde, player){
-    const dist = manhattanDist(clyde, player);
-    if(dist > 8) return {...player};
-    return {x:0, y:rows-1};
-  }
-
+  // Algoritmos IA fantasmas y movimiento
   function manhattanDist(p1, p2){
     const dx = Math.min(Math.abs(p1.x - p2.x), cols - Math.abs(p1.x - p2.x));
     const dy = Math.min(Math.abs(p1.y - p2.y), rows - Math.abs(p1.y - p2.y));
     return dx + dy;
   }
 
-  // Elige movimiento óptimo para ghost hacia target
   function ghostMoveTowards(ghost, target){
     const moves = [
       {dx: 1, dy: 0},
@@ -655,7 +335,7 @@
       return mazeMap[ny][nx] !==1;
     });
     if(legalMoves.length===0) return;
-    legalMoves.sort((a,b)=>{
+    legalMoves.sort((a,b) => {
       const ax = (ghost.x + a.dx + cols) % cols;
       const ay = (ghost.y + a.dy + rows) % rows;
       const bx = (ghost.x + b.dx + cols) % cols;
@@ -666,37 +346,115 @@
     ghost.y = (ghost.y + legalMoves[0].dy + rows) % rows;
   }
 
+  function predictPosition(player, steps){
+    const x = (player.x + steps + cols) % cols;
+    const y = player.y;
+    if(mazeMap[y][x] === 1) return {...player};
+    return {x, y};
+  }
+
+  function inkyTarget(blinky, player){
+    if(!blinky) return {...player};
+    let px = (player.x + 0 + cols) % cols;
+    let py = (player.y - 2 + rows) % rows;
+    let vx = px - blinky.x;
+    let vy = py - blinky.y;
+    let tx = (blinky.x + vx*2 + cols) % cols;
+    let ty = (blinky.y + vy*2 + rows) % rows;
+    if(mazeMap[ty][tx] === 1) return {...player};
+    return {x:tx, y:ty};
+  }
+
+  function clydeTarget(clyde, player){
+    const dist = manhattanDist(clyde, player);
+    if(dist > 8) return {...player};
+    return {x:0, y:rows-1};
+  }
+
+  // Ejecutar movimientos fantasmas según patrón
+  function moveGhosts(){
+    ghosts.forEach(g=>{
+      let target;
+      switch(g.type){
+        case 'blinky': target = {...playerPosition}; break;
+        case 'pinky': target = predictPosition(playerPosition, 4); break;
+        case 'inky':
+          const blinky = ghosts.find(f=>f.type==='blinky');
+          target = inkyTarget(blinky, playerPosition);
+          break;
+        case 'clyde': target = clydeTarget(g, playerPosition); break;
+      }
+      ghostMoveTowards(g, target);
+    });
+    drawGhosts();
+    checkGhostCollision();
+  }
+
   function checkGhostCollision(){
-    for(let g of ghosts){
+    for(const g of ghosts){
       if(g.x === playerPosition.x && g.y === playerPosition.y){
-        alert('¡Fantasma atrapó! Jugador reiniciado.');
+        alert('¡Fantasma atrapó! Jugador reposicionado.');
         resetPlayerPosition();
-        break;
       }
     }
   }
 
-  // Cuando el jugador muere, se reposiciona en un espacio abierto aleatorio diferente
+  // Mover jugador a posición aleatoria segura distinta de la actual
   function resetPlayerPosition(){
-    let openSpaces = [];
+    const openSpaces = [];
     for(let y=0; y<rows; y++){
       for(let x=0; x<cols; x++){
-        if(mazeMap[y][x] === 0 && !ghosts.some(g => g.x===x && g.y===y)){
+        if(mazeMap[y][x] === 0 && !ghosts.some(g=>g.x===x && g.y===y)){
           openSpaces.push({x,y});
         }
       }
     }
-    // Evitar la posición actual para evitar muerte instantánea
-    openSpaces = openSpaces.filter(pos => !(pos.x === playerPosition.x && pos.y === playerPosition.y));
-    if(openSpaces.length){
-      const pos = openSpaces[Math.floor(Math.random()*openSpaces.length)];
-      playerPosition = pos;
+    const safeSpaces = openSpaces.filter(pos => !(pos.x===playerPosition.x && pos.y===playerPosition.y));
+    if(safeSpaces.length){
+      const newPos = safeSpaces[Math.floor(Math.random()*safeSpaces.length)];
+      playerPosition = newPos;
       drawPlayer();
     }
   }
 
-  // Inicializamos juego con todo
-  resetGame();
+  function checkGoal(){
+    if(mazeMap[playerPosition.y][playerPosition.x] === 3){
+      if(pillsCollected >= totalPills){
+        alert(`¡Felicidades! Ganaste en ${moves} movimientos.`);
+        resetGame();
+      } else {
+        alert(`Debes recolectar las 7 pastillas para ganar.\nPastillas recogidas: ${pillsCollected}`);
+      }
+    }
+  }
+
+  // Reiniciar todo el juego
+  function resetGame(){
+    moves = 0;
+    movesCounter.textContent = moves;
+    pillsCollected = 0;
+    updatePillsCounter();
+    scanMapForPositions();
+    fillInitialPills();
+    createMaze();
+  }
+
+  // Iniciar juego
+  scanMapForPositions();
+  fillInitialPills();
+  createMaze();
+
+  window.addEventListener('keydown', e => {
+    switch(e.key){
+      case 'ArrowUp': e.preventDefault(); movePlayer(0,-1); break;
+      case 'ArrowDown': e.preventDefault(); movePlayer(0,1); break;
+      case 'ArrowLeft': e.preventDefault(); movePlayer(-1,0); break;
+      case 'ArrowRight': e.preventDefault(); movePlayer(1,0); break;
+    }
+  });
+
+  // Movimiento fantasmas cada 600ms
+  setInterval(moveGhosts, 600);
 
 </script>
 
