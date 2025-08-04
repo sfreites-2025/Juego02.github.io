@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Juego Laberinto Mundo Sin Límites</title>
+<title>Juego Laberinto Pac-Man con Fantasmas y Pastillas</title>
 <style>
   body {
     margin: 0;
@@ -28,6 +28,7 @@
     background-color: #222;
     border: 3px solid #0ff;
     box-shadow: 0 0 12px #0ffaaaff;
+    position: relative;
   }
   .cell {
     width: 30px;
@@ -40,18 +41,40 @@
   }
   .path {
     background-color: #111;
+    position: relative;
   }
   .player {
     background-color: #ffeb3b;
     border-radius: 50%;
     box-shadow: 0 0 15px 3px #ffeb3b, inset 0 0 10px 3px #fff176;
     position: relative;
-    z-index: 1;
+    z-index: 3;
+  }
+  .ghost {
+    background-color: #f50057;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    box-shadow: 0 0 15px 3px #f50057, inset 0 0 10px 3px #f48fb1;
+    position: relative;
+    z-index: 2;
   }
   .goal {
-    background-color: #f44336;
+    background-color: #4caf50;
     border-radius: 50%;
-    box-shadow: 0 0 20px 4px #f4433611, inset 0 0 10px 3px #ff7961;
+    box-shadow: 0 0 20px 4px #4caf5011, inset 0 0 10px 3px #81c784;
+    position: relative;
+    z-index: 1;
+  }
+  .pill {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 12px;
+    height: 12px;
+    background-color: #fff59d;
+    border-radius: 50%;
+    box-shadow: 0 0 8px 1.5px #fff59d;
+    transform: translate(-50%, -50%);
+    z-index: 1;
   }
   #info {
     margin: 15px;
@@ -62,124 +85,254 @@
 </head>
 <body>
 
-<h1>Laberinto Mundo Sin Límites - Estilo Pac-Man</h1>
+<h1>Laberinto Pac-Man - Con Fantasmas y Pastillas</h1>
 <div id="maze"></div>
-<div id="info">Movimientos: <span id="moves">0</span></div>
+<div id="info">
+  Movimientos: <span id="moves">0</span> |
+  Pastillas: <span id="pills">0</span>/7
+</div>
 
 <script>
-const mazeElement = document.getElementById('maze');
-const movesCounter = document.getElementById('moves');
+  const mazeElement = document.getElementById('maze');
+  const movesCounter = document.getElementById('moves');
+  const pillsCounter = document.getElementById('pills');
 
-// Mapa basado en Pac-Man clásico 19x21
-// 1 = pared, 0 = camino, 2 = jugador, 3 = meta
-const mazeMap = [
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,2,0,0,1,0,0,0,1,0,1,0,0,0,1,0,0,3,1],
-  [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
-  [1,0,1,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,1],
-  [1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,0,1],
-  [1,0,0,0,1,0,0,0,1,0,1,0,0,0,1,0,0,0,1],
-  [1,1,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,1,1],
-  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-  [1,1,1,0,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1],
-  [1,0,0,0,1,0,0,0,1,0,1,0,0,0,1,0,0,0,1],
-  [1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],
-  [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
-  [1,1,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,1],
-  [1,0,0,0,0,0,1,0,1,0,1,0,1,0,0,0,0,0,1],
-  [1,0,1,1,1,1,1,0,1,0,1,0,1,1,1,1,1,0,1],
-  [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-];
+  // Mapa 19x21:
+  // 1 = pared
+  // 0 = camino
+  // 2 = jugador inicio
+  // 3 = meta
+  // 4 = pastilla
+  // 5 = fantasma inicio
+  const mazeMap = [
+    [1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1],
+    [1,2,0,0,1,0,0,0,1,4,1,0,0,0,1,0,0,3,1],
+    [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
+    [0,0,1,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,0],
+    [1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1],
+    [1,0,0,0,0,5,0,0,0,0,0,0,0,6,0,0,0,0,1],
+    [1,0,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,0,1],
+    [1,0,0,0,1,0,0,0,1,0,1,0,0,0,1,0,0,0,1],
+    [1,1,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,1,1],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [1,1,1,0,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1],
+    [1,0,0,0,1,0,0,0,1,0,1,0,0,0,1,0,0,0,1],
+    [0,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,0],
+    [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
+    [1,1,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,1],
+    [1,0,0,0,0,0,1,0,1,0,1,0,1,0,0,0,0,0,1],
+    [1,0,1,1,1,1,1,0,1,0,1,0,1,1,1,1,1,0,1],
+    [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,0,0,1,1,1,1,1,1,1,0,1,1,1,0,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1],
+  ];
 
-const rows = mazeMap.length;
-const cols = mazeMap[0].length;
+  const rows = mazeMap.length;
+  const cols = mazeMap[0].length;
 
-let playerPosition = { x: 0, y: 0 };
-let moves = 0;
+  let playerPosition = { x: 0, y: 0 };
+  let moves = 0;
+  let pillsCollected = 0;
 
-function createMaze() {
-  mazeElement.style.gridTemplateColumns = `repeat(${cols}, 30px)`;
-  mazeElement.style.gridTemplateRows = `repeat(${rows}, 30px)`;
-  mazeElement.innerHTML = '';
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      const cell = document.createElement('div');
-      cell.classList.add('cell');
+  // Fantasmas almacenados con posición y dirección inicial (dx, dy)
+  let ghosts = [
+    {x: 5, y: 5, dx: 1, dy: 0},
+    {x: 13, y: 5, dx: -1, dy: 0}
+  ];
 
-      switch (mazeMap[y][x]) {
-        case 1:
-          cell.classList.add('wall');
-          break;
-        case 0:
-        case 2:
-          cell.classList.add('path');
-          break;
-        case 3:
-          cell.classList.add('goal');
-          break;
+  function createMaze() {
+    mazeElement.style.gridTemplateColumns = `repeat(${cols}, 30px)`;
+    mazeElement.style.gridTemplateRows = `repeat(${rows}, 30px)`;
+    mazeElement.innerHTML = '';
+
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+
+        const val = mazeMap[y][x];
+        switch (val) {
+          case 1:
+            cell.classList.add('wall');
+            break;
+          case 0:
+            cell.classList.add('path');
+            break;
+          case 2:
+            cell.classList.add('path');
+            playerPosition = {x, y};
+            break;
+          case 3:
+            cell.classList.add('goal');
+            break;
+          case 4:
+            cell.classList.add('path');
+            const pill = document.createElement('div');
+            pill.classList.add('pill');
+            cell.appendChild(pill);
+            break;
+          case 5:
+          case 6:
+            cell.classList.add('path');
+            break;
+        }
+        cell.id = `cell-${x}-${y}`;
+        mazeElement.appendChild(cell);
+      }
+    }
+    drawPlayer();
+    drawGhosts();
+    updatePillsCounter();
+  }
+
+  function drawPlayer() {
+    document.querySelectorAll('.player').forEach(el => el.classList.remove('player'));
+    const playerCell = document.getElementById(`cell-${playerPosition.x}-${playerPosition.y}`);
+    if (playerCell) playerCell.classList.add('player');
+  }
+
+  function drawGhosts() {
+    // Quitar las clases ghost anteriores
+    document.querySelectorAll('.ghost').forEach(el => el.classList.remove('ghost'));
+    ghosts.forEach(g => {
+      const cell = document.getElementById(`cell-${g.x}-${g.y}`);
+      if (cell) cell.classList.add('ghost');
+    });
+  }
+
+  function updatePillsCounter() {
+    pillsCounter.textContent = pillsCollected;
+  }
+
+  function movePlayer(dx, dy) {
+    const newX = (playerPosition.x + dx + cols) % cols;
+    const newY = (playerPosition.y + dy + rows) % rows;
+
+    if (mazeMap[newY][newX] === 1) return; // muro
+
+    playerPosition.x = newX;
+    playerPosition.y = newY;
+
+    collectPill(newX, newY);
+
+    moves++;
+    movesCounter.textContent = moves;
+
+    drawPlayer();
+    checkCollision();
+    checkGoal();
+  }
+
+  // Coleccionar pastilla si está en celda
+  function collectPill(x, y) {
+    if (mazeMap[y][x] === 4) {
+      mazeMap[y][x] = 0; // quitar pastilla del mapa
+      const cell = document.getElementById(`cell-${x}-${y}`);
+      if (cell) {
+        const pillEl = cell.querySelector('.pill');
+        if (pillEl) cell.removeChild(pillEl);
+      }
+      pillsCollected++;
+      updatePillsCounter();
+    }
+  }
+
+  function moveGhosts() {
+    ghosts = ghosts.map(g => {
+      // Intentar mover en dx, dy - si choque muro, cambiar dirección aleatoria
+      let nextX = (g.x + g.dx + cols) % cols;
+      let nextY = (g.y + g.dy + rows) % rows;
+
+      if (mazeMap[nextY][nextX] === 1) {
+        // Cambio dirección aleatoria posible (arr, abajo, izq, der)
+        const directions = [
+          {dx: 1, dy:0}, {dx: -1, dy:0},
+          {dx: 0, dy:1}, {dx: 0, dy:-1}
+        ];
+        // Elegir dirección que no choque pared al azar
+        const validDirs = directions.filter(dir => {
+          const nx = (g.x + dir.dx + cols) % cols;
+          const ny = (g.y + dir.dy + rows) % rows;
+          return mazeMap[ny][nx] !== 1;
+        });
+        if (validDirs.length) {
+          const newDir = validDirs[Math.floor(Math.random()*validDirs.length)];
+          g.dx = newDir.dx;
+          g.dy = newDir.dy;
+        } else {
+          g.dx = 0; g.dy = 0; // no moverse
+        }
+      } else {
+        // Movimiento válido
+        g.x = nextX;
+        g.y = nextY;
       }
 
-      cell.id = `cell-${x}-${y}`;
-      mazeElement.appendChild(cell);
+      return g;
+    });
+    drawGhosts();
+  }
 
-      if (mazeMap[y][x] === 2) {
-        playerPosition = { x, y };
-        cell.classList.add('player');
+  function checkCollision() {
+    ghosts.forEach(g => {
+      if (g.x === playerPosition.x && g.y === playerPosition.y) {
+        alert('¡Un fantasma te atrapó! Juego reiniciado.');
+        resetGame();
+      }
+    });
+  }
+
+  function checkGoal() {
+    if (mazeMap[playerPosition.y][playerPosition.x] === 3) {
+      if (pillsCollected >= 7) {
+        alert(`¡Felicidades! Ganaste en ${moves} movimientos y recogiste todas las pastillas.`);
+        resetGame();
+      } else {
+        alert(`Debes recolectar todas las pastillas (7) para poder ganar. Pastillas recogidas: ${pillsCollected}`);
       }
     }
   }
-}
 
-function updatePlayerPosition(newX, newY) {
-  document.getElementById(`cell-${playerPosition.x}-${playerPosition.y}`).classList.remove('player');
-  playerPosition.x = newX;
-  playerPosition.y = newY;
-  document.getElementById(`cell-${newX}-${newY}`).classList.add('player');
-}
-
-function move(dx, dy) {
-  let newX = (playerPosition.x + dx + cols) % cols;
-  let newY = (playerPosition.y + dy + rows) % rows;
-
-  // No se puede pasar por muros
-  if (mazeMap[newY][newX] === 1) return;
-
-  updatePlayerPosition(newX, newY);
-  moves++;
-  movesCounter.textContent = moves;
-
-  checkGoal();
-}
-
-function checkGoal() {
-  if (mazeMap[playerPosition.y][playerPosition.x] === 3) {
-    alert(`¡Felicidades! Ganaste en ${moves} movimientos.`);
-    resetGame();
+  function resetGame() {
+    // Restablecer el mapa con pastillas y posiciones
+    for(let y=0; y<rows; y++){
+      for(let x=0; x<cols; x++){
+        // Restaurar pastillas originales (en mapa hardcodeado: números 4)
+        if (originalMap[y][x] === 4) mazeMap[y][x] = 4;
+        // Restaurar jugador y fantasmas
+        if (originalMap[y][x] === 2) playerPosition = {x, y};
+        if (originalMap[y][x] === 5) ghosts[0].x = x, ghosts[0].y = y, ghosts[0].dx=1, ghosts[0].dy=0;
+        if (originalMap[y][x] === 6) ghosts[1].x = x, ghosts[1].y = y, ghosts[1].dx=-1, ghosts[1].dy=0;
+      }
+    }
+    moves = 0;
+    pillsCollected = 0;
+    movesCounter.textContent = moves;
+    updatePillsCounter();
+    createMaze();
   }
-}
 
-function resetGame() {
-  moves = 0;
-  movesCounter.textContent = moves;
+  // Guardar el mapa original para reset
+  const originalMap = JSON.parse(JSON.stringify(mazeMap));
+
+  // Control teclado jugador
+  window.addEventListener('keydown', e => {
+    switch(e.key) {
+      case 'ArrowUp': e.preventDefault(); movePlayer(0, -1); break;
+      case 'ArrowDown': e.preventDefault(); movePlayer(0, 1); break;
+      case 'ArrowLeft': e.preventDefault(); movePlayer(-1, 0); break;
+      case 'ArrowRight': e.preventDefault(); movePlayer(1, 0); break;
+    }
+  });
+
+  // Fantasmas se mueven cada 750ms
+  setInterval(() => {
+    moveGhosts();
+    checkCollision();
+  }, 750);
+
   createMaze();
-}
-
-window.addEventListener('keydown', e => {
-  switch(e.key) {
-    case 'ArrowUp': e.preventDefault(); move(0, -1); break;
-    case 'ArrowDown': e.preventDefault(); move(0, 1); break;
-    case 'ArrowLeft': e.preventDefault(); move(-1, 0); break;
-    case 'ArrowRight': e.preventDefault(); move(1, 0); break;
-  }
-});
-
-createMaze();
-
 </script>
 
 </body>
