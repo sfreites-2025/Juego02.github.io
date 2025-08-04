@@ -262,8 +262,6 @@
       [1,1,1,1,1,1,0,1,1,1,1,1,0,0,0,1],
       [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     ]
-
-
   ];
 
   // Player starts always near top-left path, goal near bottom-right open cell
@@ -334,19 +332,15 @@
   function movePlayer(dx, dy) {
     if (!canMove) return;
 
-    let nx = playerPos.x + dx;
-    let ny = playerPos.y + dy;
+    // Envolvemos posición para permitir salir por un lado y entrar por el otro
+    let nx = (playerPos.x + dx + mazeSize) % mazeSize;
+    let ny = (playerPos.y + dy + mazeSize) % mazeSize;
 
-    if (nx < 0 || ny < 0 || nx >= mazeSize || ny >= mazeSize) {
-      return;
-    }
     if (mazeData[ny][nx] === 1) return;
 
-    // Move player
     mazeGrid[cellIndex(playerPos.x, playerPos.y)].classList.remove('player');
     playerPos.x = nx;
     playerPos.y = ny;
-
     mazeGrid[cellIndex(nx, ny)].classList.add('player');
 
     moves++;
