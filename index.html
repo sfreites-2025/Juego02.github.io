@@ -3,168 +3,311 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Menú Interactivo Avanzado</title>
+<title>Menú de Juegos</title>
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    margin: 30px;
-    background: #f4f4f9;
+  body { font-family: Arial, sans-serif; background: #f0f0f0; margin: 0; padding: 0; }
+  #menu, #memoryGame, #mazeGame { display: none; padding: 20px; text-align: center; }
+  #menu { display: block; }
+  button { font-size: 18px; margin: 10px; padding: 10px 20px; cursor: pointer; }
+  
+  /* Estilos Memoria */
+  #memoryGame {
+    max-width: 600px;
+    margin: 0 auto;
   }
-  nav {
-    margin-bottom: 20px;
+  .memory-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 100px);
+    grid-gap: 15px;
+    justify-content: center;
   }
-  nav button {
-    background-color: #007bff;
-    border: none;
+  .card {
+    width: 100px;
+    height: 100px;
+    background: #007bff;
     color: white;
-    padding: 12px 20px;
-    margin-right: 10px;
-    font-size: 16px;
-    border-radius: 5px;
+    font-size: 40px;
+    line-height: 100px;
     cursor: pointer;
-    transition: background-color 0.3s;
+    border-radius: 10px;
+    user-select: none;
+    position: relative;
+    perspective: 600px;
   }
-  nav button:hover, nav button.active {
-    background-color: #0056b3;
+  .card-inner {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    transition: transform 0.5s;
+    transform-style: preserve-3d;
+    border-radius: 10px;
   }
-  .contenido {
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 3px 6px #aaa;
-    padding: 20px;
-    max-width: 480px;
+  .card.flipped .card-inner {
+    transform: rotateY(180deg);
   }
-  .hidden {
-    display: none;
+  .card-front, .card-back {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    backface-visibility: hidden;
+    border-radius: 10px;
   }
-  input[type="number"], input[type="text"] {
-    padding: 8px;
-    font-size: 16px;
-    width: 180px;
-    margin-right: 10px;
-    border-radius: 4px;
+  .card-front {
+    background: #007bff;
+  }
+  .card-back {
+    background: white;
+    color: black;
+    transform: rotateY(180deg);
+    font-weight: bold;
+    font-size: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* Estilos Laberinto */
+  #mazeGame {
+    position: relative;
+    width: 400px;
+    height: 400px;
+    background: #eee;
+    margin: 20px auto;
+    border: 3px solid #333;
+  }
+  .maze-cell {
+    width: 40px;
+    height: 40px;
+    box-sizing: border-box;
+    float: left;
     border: 1px solid #ccc;
   }
-  button.submit-btn {
-    background-color: #28a745;
+  .wall {
+    background: black;
   }
-  button.submit-btn:hover {
-    background-color: #1c7c31;
+  .player {
+    background: green;
+  }
+  .goal {
+    background: gold;
+  }
+
+  #backToMenu {
+    margin-top: 20px;
+    background: darkred;
+    color: white;
   }
 </style>
 </head>
 <body>
 
-<nav>
-  <button id="btnSaludar" class="active">Saludar</button>
-  <button id="btnSumar">Sumar</button>
-  <button id="btnFormulario">Formulario</button>
-</nav>
+<div id="menu">
+  <h1>Bienvenido a la selección de juegos</h1>
+  <button onclick="showGame('memory')">Juego de Memoria</button>
+  <button onclick="showGame('maze')">Juego del Laberinto</button>
+</div>
 
-<div class="contenido" id="contenido">
+<div id="memoryGame">
+  <h2>Juego de Memoria</h2>
+  <div class="memory-grid" id="memoryGrid"></div>
+  <button id="backToMenuMem" onclick="backToMenu()">Volver al menú</button>
+</div>
 
-  <!-- Saludar -->
-  <div id="saludar" >
-    <p>Haz clic en el botón para saludar:</p>
-    <button onclick="saludarUsuario()">Saludar</button>
-    <p id="mensajeSaludo"></p>
-  </div>
-
-  <!-- Sumar -->
-  <div id="sumar" class="hidden">
-    <p>Ingresa dos números para sumarlos:</p>
-    <input type="number" id="num1" placeholder="Número 1" />
-    <input type="number" id="num2" placeholder="Número 2" />
-    <button class="submit-btn" onclick="realizarSuma()">Sumar</button>
-    <p id="resultadoSuma"></p>
-  </div>
-
-  <!-- Formulario -->
-  <div id="formulario" class="hidden">
-    <p>Completa el formulario:</p>
-    <label for="nombreForm">Nombre:</label><br />
-    <input type="text" id="nombreForm" placeholder="Tu nombre" /><br /><br />
-    <label for="edadForm">Edad:</label><br />
-    <input type="number" id="edadForm" placeholder="Tu edad" /><br /><br />
-    <button class="submit-btn" onclick="enviarFormulario()">Enviar</button>
-    <p id="mensajeFormulario"></p>
-  </div>
-
+<div id="mazeGame">
+  <h2>Juego del Laberinto</h2>
+  <div id="maze"></div>
+  <p>Usa las flechas del teclado para mover el jugador verde hasta el cuadro dorado.</p>
+  <button id="backToMenuMaze" onclick="backToMenu()">Volver al menú</button>
 </div>
 
 <script>
-  // Botones menú
-  const btnSaludar = document.getElementById('btnSaludar');
-  const btnSumar = document.getElementById('btnSumar');
-  const btnFormulario = document.getElementById('btnFormulario');
+// Mostrar el juego seleccionado
+function showGame(game) {
+  document.getElementById('menu').style.display = 'none';
+  if (game === 'memory') {
+    document.getElementById('memoryGame').style.display = 'block';
+    initMemoryGame();
+  } else if (game === 'maze') {
+    document.getElementById('mazeGame').style.display = 'block';
+    initMazeGame();
+  }
+}
 
-  // Contenedores
-  const divSaludar = document.getElementById('saludar');
-  const divSumar = document.getElementById('sumar');
-  const divFormulario = document.getElementById('formulario');
+function backToMenu() {
+  document.getElementById('memoryGame').style.display = 'none';
+  document.getElementById('mazeGame').style.display = 'none';
+  document.getElementById('menu').style.display = 'block';
+  resetMemoryGame();
+  resetMazeGame();
+}
 
-  // Mostrar solo la sección activa y marcar botón activo
-  function mostrarSeccion(seccion) {
-    divSaludar.classList.add('hidden');
-    divSumar.classList.add('hidden');
-    divFormulario.classList.add('hidden');
+/* ------------ Juego de Memoria ------------ */
 
-    btnSaludar.classList.remove('active');
-    btnSumar.classList.remove('active');
-    btnFormulario.classList.remove('active');
+const memoryGrid = document.getElementById('memoryGrid');
+const symbols = ['🍎', '🍌', '🍇', '🍉', '🍓', '🍒', '🥝', '🍍']; // 8 pares
+let cards = [];
+let flippedCards = [];
+let matchedPairs = 0;
+let lockBoard = false;
 
-    if(seccion === 'saludar') {
-      divSaludar.classList.remove('hidden');
-      btnSaludar.classList.add('active');
-    } else if(seccion === 'sumar') {
-      divSumar.classList.remove('hidden');
-      btnSumar.classList.add('active');
-    } else if(seccion === 'formulario') {
-      divFormulario.classList.remove('hidden');
-      btnFormulario.classList.add('active');
+function initMemoryGame() {
+  if (cards.length > 0) return; // Evita reinicializar al volver al juego
+  const doubleSymbols = symbols.concat(symbols);
+  const shuffled = doubleSymbols.sort(() => Math.random() - 0.5);
+  memoryGrid.innerHTML = '';
+
+  cards = shuffled.map((symbol, index) => {
+    const card = document.createElement('div');
+    card.classList.add('card');
+    card.dataset.symbol = symbol;
+
+    const cardInner = document.createElement('div');
+    cardInner.classList.add('card-inner');
+
+    const cardFront = document.createElement('div');
+    cardFront.classList.add('card-front');
+
+    const cardBack = document.createElement('div');
+    cardBack.classList.add('card-back');
+    cardBack.textContent = symbol;
+
+    cardInner.appendChild(cardFront);
+    cardInner.appendChild(cardBack);
+    card.appendChild(cardInner);
+
+    card.addEventListener('click', () => flipCard(card));
+    memoryGrid.appendChild(card);
+    return card;
+  });
+
+  flippedCards = [];
+  matchedPairs = 0;
+  lockBoard = false;
+}
+
+function flipCard(card) {
+  if (lockBoard) return;
+  if (flippedCards.includes(card)) return;
+
+  card.classList.add('flipped');
+  flippedCards.push(card);
+
+  if (flippedCards.length === 2) {
+    checkForMatch();
+  }
+}
+
+function checkForMatch() {
+  lockBoard = true;
+  const [card1, card2] = flippedCards;
+  const isMatch = card1.dataset.symbol === card2.dataset.symbol;
+  if (isMatch) {
+    matchedPairs++;
+    flippedCards = [];
+    lockBoard = false;
+    if (matchedPairs === symbols.length) {
+      setTimeout(() => alert('¡Felicidades! Completaste el juego de memoria.'), 300);
+    }
+  } else {
+    setTimeout(() => {
+      card1.classList.remove('flipped');
+      card2.classList.remove('flipped');
+      flippedCards = [];
+      lockBoard = false;
+    }, 1000);
+  }
+}
+
+function resetMemoryGame() {
+  cards = [];
+  flippedCards = [];
+  matchedPairs = 0;
+  lockBoard = false;
+  memoryGrid.innerHTML = '';
+}
+
+/* ------------ Juego del Laberinto ------------ */
+
+const maze = document.getElementById('maze');
+const mazeSize = 10;
+let mazeGrid = [];
+let playerPos = {x: 1, y: 1};
+const goalPos = {x: 8, y: 8};
+let mazeInitialized = false;
+
+const mazeLayout = [
+  [1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,1,0,0,0,0,1],
+  [1,0,1,0,1,0,1,1,0,1],
+  [1,0,1,0,0,0,0,1,0,1],
+  [1,0,1,1,1,1,0,1,0,1],
+  [1,0,0,0,0,1,0,1,0,1],
+  [1,1,1,1,0,1,0,1,0,1],
+  [1,0,0,1,0,0,0,0,0,1],
+  [1,0,0,0,1,1,1,1,0,1],
+  [1,1,1,1,1,1,1,1,1,1],
+];
+
+function initMazeGame() {
+  if (mazeInitialized) return;
+  maze.innerHTML = '';
+  mazeGrid = [];
+
+  for(let y=0; y<mazeSize; y++) {
+    for(let x=0; x<mazeSize; x++) {
+      const cell = document.createElement('div');
+      cell.classList.add('maze-cell');
+      if(mazeLayout[y][x] === 1) cell.classList.add('wall');
+      if(x === playerPos.x && y === playerPos.y) cell.classList.add('player');
+      if(x === goalPos.x && y === goalPos.y) cell.classList.add('goal');
+      maze.appendChild(cell);
+      mazeGrid.push(cell);
     }
   }
+  window.addEventListener('keydown', movePlayer);
+  mazeInitialized = true;
+}
 
-  btnSaludar.addEventListener('click', () => mostrarSeccion('saludar'));
-  btnSumar.addEventListener('click', () => mostrarSeccion('sumar'));
-  btnFormulario.addEventListener('click', () => mostrarSeccion('formulario'));
+function movePlayer(e) {
+  let newX = playerPos.x;
+  let newY = playerPos.y;
 
-  // Función saludar
-  function saludarUsuario() {
-    const nombre = prompt("¿Cómo te llamas?");
-    const mensaje = document.getElementById('mensajeSaludo');
-    if(nombre && nombre.trim() !== '') {
-      mensaje.textContent = `¡Hola, ${nombre}! Bienvenido al menú interactivo.`;
-    } else {
-      mensaje.textContent = 'No ingresaste ningún nombre.';
-    }
+  if(e.key === 'ArrowUp') newY--;
+  else if(e.key === 'ArrowDown') newY++;
+  else if(e.key === 'ArrowLeft') newX--;
+  else if(e.key === 'ArrowRight') newX++;
+  else return;
+
+  if (!isWalkable(newX, newY)) return;
+
+  updatePlayerPosition(newX, newY);
+
+  if(newX === goalPos.x && newY === goalPos.y) {
+    setTimeout(() => alert('¡Ganaste el laberinto!'), 100);
   }
+}
 
-  // Función suma
-  function realizarSuma() {
-    const n1 = parseFloat(document.getElementById('num1').value);
-    const n2 = parseFloat(document.getElementById('num2').value);
-    const resultado = document.getElementById('resultadoSuma');
-    if(isNaN(n1) || isNaN(n2)) {
-      resultado.textContent = "Por favor, ingresa dos números válidos.";
-    } else {
-      resultado.textContent = `El resultado de la suma es: ${n1 + n2}`;
-    }
-  }
+function isWalkable(x,y) {
+  if(x < 0 || y < 0 || x >= mazeSize || y >= mazeSize) return false;
+  return mazeLayout[y][x] === 0;
+}
 
-  // Función formulario
-  function enviarFormulario() {
-    const nombre = document.getElementById('nombreForm').value.trim();
-    const edad = parseInt(document.getElementById('edadForm').value);
-    const mensaje = document.getElementById('mensajeFormulario');
-    if(nombre === '') {
-      mensaje.textContent = 'Por favor, ingresa tu nombre.';
-    } else if(isNaN(edad) || edad <= 0) {
-      mensaje.textContent = 'Por favor, ingresa una edad válida.';
-    } else {
-      mensaje.textContent = `Gracias, ${nombre}. Has registrado una edad de ${edad} años.`;
-    }
-  }
+function updatePlayerPosition(newX, newY) {
+  const oldCellIndex = playerPos.y * mazeSize + playerPos.x;
+  const newCellIndex = newY * mazeSize + newX;
+
+  mazeGrid[oldCellIndex].classList.remove('player');
+  playerPos.x = newX;
+  playerPos.y = newY;
+  mazeGrid[newCellIndex].classList.add('player');
+}
+
+function resetMazeGame() {
+  window.removeEventListener('keydown', movePlayer);
+  maze.innerHTML = '';
+  playerPos = {x: 1, y: 1};
+  mazeInitialized = false;
+}
 
 </script>
 
