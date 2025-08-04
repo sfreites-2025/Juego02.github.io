@@ -1,22 +1,172 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8" />
-    <title>Formulario de Contacto</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Menú Interactivo Avanzado</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 30px;
+    background: #f4f4f9;
+  }
+  nav {
+    margin-bottom: 20px;
+  }
+  nav button {
+    background-color: #007bff;
+    border: none;
+    color: white;
+    padding: 12px 20px;
+    margin-right: 10px;
+    font-size: 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  nav button:hover, nav button.active {
+    background-color: #0056b3;
+  }
+  .contenido {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 3px 6px #aaa;
+    padding: 20px;
+    max-width: 480px;
+  }
+  .hidden {
+    display: none;
+  }
+  input[type="number"], input[type="text"] {
+    padding: 8px;
+    font-size: 16px;
+    width: 180px;
+    margin-right: 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+  }
+  button.submit-btn {
+    background-color: #28a745;
+  }
+  button.submit-btn:hover {
+    background-color: #1c7c31;
+  }
+</style>
 </head>
 <body>
-    <h1>Contacto</h1>
-    <form method="POST" action="sendmail.php">
-        <label for="name">Nombre:</label><br>
-        <input type="text" id="name" name="name" required><br><br>
 
-        <label for="email">Correo electrónico:</label><br>
-        <input type="email" id="email" name="email" required><br><br>
+<nav>
+  <button id="btnSaludar" class="active">Saludar</button>
+  <button id="btnSumar">Sumar</button>
+  <button id="btnFormulario">Formulario</button>
+</nav>
 
-        <label for="message">Mensaje:</label><br>
-        <textarea id="message" name="message" rows="4" required></textarea><br><br>
+<div class="contenido" id="contenido">
 
-        <button type="submit">Enviar</button>
-    </form>
+  <!-- Saludar -->
+  <div id="saludar" >
+    <p>Haz clic en el botón para saludar:</p>
+    <button onclick="saludarUsuario()">Saludar</button>
+    <p id="mensajeSaludo"></p>
+  </div>
+
+  <!-- Sumar -->
+  <div id="sumar" class="hidden">
+    <p>Ingresa dos números para sumarlos:</p>
+    <input type="number" id="num1" placeholder="Número 1" />
+    <input type="number" id="num2" placeholder="Número 2" />
+    <button class="submit-btn" onclick="realizarSuma()">Sumar</button>
+    <p id="resultadoSuma"></p>
+  </div>
+
+  <!-- Formulario -->
+  <div id="formulario" class="hidden">
+    <p>Completa el formulario:</p>
+    <label for="nombreForm">Nombre:</label><br />
+    <input type="text" id="nombreForm" placeholder="Tu nombre" /><br /><br />
+    <label for="edadForm">Edad:</label><br />
+    <input type="number" id="edadForm" placeholder="Tu edad" /><br /><br />
+    <button class="submit-btn" onclick="enviarFormulario()">Enviar</button>
+    <p id="mensajeFormulario"></p>
+  </div>
+
+</div>
+
+<script>
+  // Botones menú
+  const btnSaludar = document.getElementById('btnSaludar');
+  const btnSumar = document.getElementById('btnSumar');
+  const btnFormulario = document.getElementById('btnFormulario');
+
+  // Contenedores
+  const divSaludar = document.getElementById('saludar');
+  const divSumar = document.getElementById('sumar');
+  const divFormulario = document.getElementById('formulario');
+
+  // Mostrar solo la sección activa y marcar botón activo
+  function mostrarSeccion(seccion) {
+    divSaludar.classList.add('hidden');
+    divSumar.classList.add('hidden');
+    divFormulario.classList.add('hidden');
+
+    btnSaludar.classList.remove('active');
+    btnSumar.classList.remove('active');
+    btnFormulario.classList.remove('active');
+
+    if(seccion === 'saludar') {
+      divSaludar.classList.remove('hidden');
+      btnSaludar.classList.add('active');
+    } else if(seccion === 'sumar') {
+      divSumar.classList.remove('hidden');
+      btnSumar.classList.add('active');
+    } else if(seccion === 'formulario') {
+      divFormulario.classList.remove('hidden');
+      btnFormulario.classList.add('active');
+    }
+  }
+
+  btnSaludar.addEventListener('click', () => mostrarSeccion('saludar'));
+  btnSumar.addEventListener('click', () => mostrarSeccion('sumar'));
+  btnFormulario.addEventListener('click', () => mostrarSeccion('formulario'));
+
+  // Función saludar
+  function saludarUsuario() {
+    const nombre = prompt("¿Cómo te llamas?");
+    const mensaje = document.getElementById('mensajeSaludo');
+    if(nombre && nombre.trim() !== '') {
+      mensaje.textContent = `¡Hola, ${nombre}! Bienvenido al menú interactivo.`;
+    } else {
+      mensaje.textContent = 'No ingresaste ningún nombre.';
+    }
+  }
+
+  // Función suma
+  function realizarSuma() {
+    const n1 = parseFloat(document.getElementById('num1').value);
+    const n2 = parseFloat(document.getElementById('num2').value);
+    const resultado = document.getElementById('resultadoSuma');
+    if(isNaN(n1) || isNaN(n2)) {
+      resultado.textContent = "Por favor, ingresa dos números válidos.";
+    } else {
+      resultado.textContent = `El resultado de la suma es: ${n1 + n2}`;
+    }
+  }
+
+  // Función formulario
+  function enviarFormulario() {
+    const nombre = document.getElementById('nombreForm').value.trim();
+    const edad = parseInt(document.getElementById('edadForm').value);
+    const mensaje = document.getElementById('mensajeFormulario');
+    if(nombre === '') {
+      mensaje.textContent = 'Por favor, ingresa tu nombre.';
+    } else if(isNaN(edad) || edad <= 0) {
+      mensaje.textContent = 'Por favor, ingresa una edad válida.';
+    } else {
+      mensaje.textContent = `Gracias, ${nombre}. Has registrado una edad de ${edad} años.`;
+    }
+  }
+
+</script>
+
 </body>
 </html>
