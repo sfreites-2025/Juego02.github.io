@@ -3,402 +3,184 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Juego del Laberinto - Niveles</title>
+<title>Juego Laberinto Mundo Sin Límites</title>
 <style>
   body {
-    margin: 0; padding: 0;
+    margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(125deg, #37474f, #263238, #212121);
-    color: #eceff1;
+    background: #000;
+    color: #fff;
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-height: 100vh;
+    height: 100vh;
+    user-select: none;
   }
-
   h1 {
-    margin-top: 40px;
-    font-size: 2.8em;
-    text-shadow: 0 0 6px #81d4fa;
+    margin: 20px 0;
+    text-shadow: 0 0 5px #0ff;
   }
-
-  #level-bar {
-    margin: 25px 0 15px 0;
-    display: flex;
-    gap: 12px;
-  }
-
-  .level-btn {
-    background: #0288d1;
-    border: none;
-    padding: 10px 26px;
-    border-radius: 16px;
-    font-weight: 700;
-    font-size: 1.1em;
-    color: white;
-    cursor: pointer;
-    box-shadow: 0 5px 15px #0288d155;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-  }
-  .level-btn:hover, .level-btn.selected {
-    background: #81d4fa;
-    color: #37474f;
-    transform: scale(1.1);
-    box-shadow: 0 6px 25px #81d4fa99;
-  }
-
-  #stats-bar {
-    margin-bottom: 20px;
-    font-size: 1.2em;
-    font-weight: bold;
-    letter-spacing: 0.4px;
-    text-shadow: 0 0 12px #0277bdbb;
-  }
-
   #maze {
-    position: relative;
-    background: #263238;
-    border: 3px solid #81d4fa;
-    overflow: hidden;
-    box-shadow: 0 0 12px #81d4faaa;
+    display: grid;
+    grid-template-columns: repeat(19, 30px);
+    grid-template-rows: repeat(21, 30px);
+    gap: 2px;
+    background-color: #222;
+    border: 3px solid #0ff;
+    box-shadow: 0 0 12px #0ffaaaff;
   }
-
-  /* Maze cells */
-  .maze-cell {
-    float: left;
+  .cell {
+    width: 30px;
+    height: 30px;
     box-sizing: border-box;
-    border: 1px solid #37474f;
-    width: 35px;
-    height: 35px;
-    transition: background-color 0.3s ease;
   }
   .wall {
-    background-color: #1c1f23;
+    background-color: #00008b;
+    box-shadow: inset 0 0 5px #0000ff;
   }
   .path {
-    background-color: #263238;
+    background-color: #111;
   }
   .player {
-    background-color: #29b6f6;
-    box-shadow: 0 0 10px 2px #29b6f6, inset 0 0 7px 2px #82cfff;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    background-color: #ffeb3b;
+    border-radius: 50%;
+    box-shadow: 0 0 15px 3px #ffeb3b, inset 0 0 10px 3px #fff176;
+    position: relative;
+    z-index: 1;
   }
   .goal {
-    background-color: #ffd740;
-    box-shadow: 0 0 12px 4px #ffd740cc, inset 0 0 9px 3px #ffe740;
-    animation: glowGoal 2s infinite alternate;
+    background-color: #f44336;
+    border-radius: 50%;
+    box-shadow: 0 0 20px 4px #f4433611, inset 0 0 10px 3px #ff7961;
   }
-
-  @keyframes glowGoal {
-    0% { box-shadow: 0 0 12px 4px #ffd740cc, inset 0 0 9px 3px #ffe740; }
-    100% { box-shadow: 0 0 25px 7px #ffd740ff, inset 0 0 15px 5px #fff176; }
-  }
-
-  #msg {
-    font-size: 1.4em;
-    font-weight: 700;
-    color: #ff7043;
-    margin: 14px 0 22px 0;
-    min-height: 30px;
-    text-shadow: 0 0 12px #ffab91cc;
-  }
-
-  #reset-btn {
-    background-color: #29b6f6;
-    border: none;
-    padding: 13px 28px;
-    border-radius: 16px;
-    font-weight: 700;
-    font-size: 1.1em;
-    color: #263238;
-    box-shadow: 0 6px 16px #29b6f655;
-    cursor: pointer;
-    transition: background-color 0.25s ease;
-  }
-  #reset-btn:hover {
-    background-color: #81d4fa;
-    color: #212121;
-    box-shadow: 0 10px 30px #81d4faaa;
-  }
-
-  #back-btn {
-    position: fixed;
-    top: 18px;
-    left: 18px;
-    background: #0288d1cc;
-    border: none;
-    color: #ffd740;
-    font-weight: 700;
-    padding: 10px 26px;
-    border-radius: 50px;
-    font-size: 1.05em;
-    cursor: pointer;
-    box-shadow: 0 0 12px #4fc3f7a6;
-    transition: background-color 0.25s;
-    z-index: 9999;
-  }
-  #back-btn:hover {
-    background: #029beaff;
-    color: white;
-  }
-
-  /* Clear floats */
-  #maze::after {
-    content: "";
-    display: block;
-    clear: both;
+  #info {
+    margin: 15px;
+    font-size: 18px;
+    text-shadow: 0 0 5px #0ff;
   }
 </style>
 </head>
 <body>
 
-<button id="back-btn" onclick="location.href='index.html'">← Menú principal</button>
-<h1>Juego del Laberinto</h1>
-
-<div id="level-bar">
-  <button class="level-btn selected" data-level="1">Nivel 1</button>
-  <button class="level-btn" data-level="2">Nivel 2</button>
-  <button class="level-btn" data-level="3">Nivel 3</button>
-  <button class="level-btn" data-level="4">Nivel 4</button>
-  <button class="level-btn" data-level="5">Nivel 5</button>
-</div>
-
-<div id="stats-bar">
-  Movimientos: <span id="moves-taken">0</span>
-</div>
-
+<h1>Laberinto Mundo Sin Límites - Estilo Pac-Man</h1>
 <div id="maze"></div>
-
-<div id="msg"></div>
-
-<button id="reset-btn">Reiniciar nivel</button>
+<div id="info">Movimientos: <span id="moves">0</span></div>
 
 <script>
-  const mazeContainer = document.getElementById('maze');
-  const movesSpan = document.getElementById('moves-taken');
-  const msg = document.getElementById('msg');
-  const resetBtn = document.getElementById('reset-btn');
-  const levelButtons = document.querySelectorAll('.level-btn');
+const mazeElement = document.getElementById('maze');
+const movesCounter = document.getElementById('moves');
 
-  let level = 1;
-  let moves = 0;
-  let mazeGrid = [];
-  let playerPos = {x: 0, y: 0};
-  let goalPos = {x: 0, y: 0};
-  let mazeSize = 8;
-  let mazeData = [];
-  let canMove = true;
+// Mapa basado en Pac-Man clásico 19x21
+// 1 = pared, 0 = camino, 2 = jugador, 3 = meta
+const mazeMap = [
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,2,0,0,1,0,0,0,1,0,1,0,0,0,1,0,0,3,1],
+  [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
+  [1,0,1,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,1],
+  [1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,0,1],
+  [1,0,0,0,1,0,0,0,1,0,1,0,0,0,1,0,0,0,1],
+  [1,1,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,1,1],
+  [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],
+  [1,1,1,0,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1],
+  [1,0,0,0,1,0,0,0,1,0,1,0,0,0,1,0,0,0,1],
+  [1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],
+  [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
+  [1,1,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,1],
+  [1,0,0,0,0,0,1,0,1,0,1,0,1,0,0,0,0,0,1],
+  [1,0,1,1,1,1,1,0,1,0,1,0,1,1,1,1,1,0,1],
+  [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+];
 
-  // Maze layouts by level. 1 = wall, 0 = path
-  // Maze maps created to increase size / difficulty, hidden path by color
-  const mazes = [
-    [ // Level 1: 8x8
-      [1,1,0,1,1,1,1,1],
-      [1,0,0,0,1,0,0,1],
-      [1,0,1,0,1,0,1,1],
-      [1,0,1,0,0,0,0,1],
-      [1,0,1,1,1,1,0,1],
-      [1,0,0,0,0,1,0,1],
-      [1,1,1,1,0,1,0,1],
-      [1,1,1,1,1,1,1,1],
-    ],
-    [ // Level 2: 10x10
-      [1,1,1,1,1,1,1,1,1,1],
-      [1,0,0,0,1,0,0,0,0,1],
-      [1,0,1,0,1,0,1,1,0,1],
-      [1,0,1,0,0,0,0,1,0,1],
-      [1,0,1,1,1,1,0,1,0,1],
-      [1,0,0,0,0,1,0,1,0,1],
-      [1,1,1,1,0,1,0,1,0,1],
-      [1,0,0,1,0,0,0,0,0,1],
-      [1,0,0,0,1,1,1,1,0,1],
-      [1,1,1,1,1,1,1,1,1,1],
-    ],
-    [ // Level 3: 12x12
-      [1,1,1,1,1,1,1,1,1,1,1,1],
-      [1,0,0,0,1,0,0,0,0,0,0,1],
-      [1,0,1,0,1,0,1,1,1,1,0,1],
-      [1,0,1,0,0,0,0,0,0,1,0,1],
-      [1,0,1,1,1,1,1,1,0,1,0,1],
-      [1,0,0,0,0,0,0,1,0,1,0,1],
-      [1,1,1,1,1,1,0,1,0,1,0,1],
-      [1,0,0,0,0,1,0,1,0,0,0,1],
-      [1,0,1,1,0,1,0,1,1,1,0,1],
-      [1,0,1,0,0,0,0,0,0,1,0,1],
-      [1,0,0,0,1,1,1,1,0,0,0,1],
-      [1,1,1,1,1,1,1,1,1,1,1,1],
-    ],
-    [ // Level 4: 14x14 - harder map with some dead ends and tight corridors
-      [1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-      [1,0,0,0,0,1,0,0,0,0,0,0,0,1],
-      [1,1,1,1,0,1,0,1,1,1,1,0,1,1],
-      [1,0,0,1,0,0,0,1,0,0,1,0,0,1],
-      [1,0,1,1,1,1,0,1,0,1,1,1,0,1],
-      [1,0,0,0,0,1,0,1,0,0,0,0,0,1],
-      [1,1,1,1,0,1,0,1,1,1,1,1,0,1],
-      [1,0,0,1,0,1,0,0,0,0,0,1,0,1],
-      [1,0,1,1,0,1,1,1,1,1,0,1,0,1],
-      [1,0,0,0,0,0,0,0,0,1,0,1,0,1],
-      [1,1,1,1,1,1,1,1,0,1,0,1,0,1],
-      [1,0,0,0,0,0,0,1,0,0,0,0,0,1],
-      [1,0,1,1,1,1,0,1,1,1,1,1,0,1],
-      [1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    ],
-    [ // Nivel 5 corregido con camino válido 16x16
-      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-      [1,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1],
-      [1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1],
-      [1,0,1,0,0,0,0,1,0,0,0,1,0,0,0,1],
-      [1,0,1,1,1,1,0,1,1,1,0,1,0,1,1,1],
-      [1,0,0,0,0,1,0,0,0,1,0,1,0,0,0,1],
-      [1,1,1,1,0,1,1,1,0,1,0,1,1,1,0,1],
-      [1,0,0,1,0,0,0,1,0,0,0,0,0,1,0,1],
-      [1,0,1,1,1,1,0,1,1,1,1,1,0,1,0,1],
-      [1,0,0,0,0,1,0,0,0,0,0,1,0,1,0,1],
-      [1,1,1,1,0,1,1,1,1,1,0,1,0,1,0,1],
-      [1,0,0,1,0,0,0,0,0,1,0,1,0,0,0,1],
-      [1,0,1,1,1,1,1,1,0,1,0,1,1,1,0,1],
-      [1,0,0,0,0,0,0,1,0,0,0,0,0,1,0,1],
-      [1,1,1,1,1,1,0,1,1,1,1,1,0,0,0,1],
-      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    ]
-  ];
+const rows = mazeMap.length;
+const cols = mazeMap[0].length;
 
-  // Player starts always near top-left path, goal near bottom-right open cell
-  function initLevel(lvl) {
-    mazeData = mazes[lvl - 1];
-    mazeSize = mazeData.length;
-    playerPos = findOpenCell(mazeData, true); // top-left open cell
-    goalPos = findOpenCell(mazeData, false); // bottom-right open cell
-    moves = 0;
-    canMove = true;
-    movesSpan.textContent = moves;
-    msg.textContent = "";
-    createMazeGrid();
-    highlightPlayerGoal();
-  }
+let playerPosition = { x: 0, y: 0 };
+let moves = 0;
 
-  function findOpenCell(grid, topLeft = true) {
-    if (topLeft) {
-      for (let y = 0; y < grid.length; y++) {
-        for (let x = 0; x < grid.length; x++) {
-          if (grid[y][x] === 0) return {x, y};
-        }
-      }
-    } else {
-      for (let y = grid.length - 1; y >= 0; y--) {
-        for (let x = grid.length - 1; x >= 0; x--) {
-          if (grid[y][x] === 0) return {x, y};
-        }
-      }
-    }
-    // fallback
-    return {x: 1, y: 1};
-  }
+function createMaze() {
+  mazeElement.style.gridTemplateColumns = `repeat(${cols}, 30px)`;
+  mazeElement.style.gridTemplateRows = `repeat(${rows}, 30px)`;
+  mazeElement.innerHTML = '';
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const cell = document.createElement('div');
+      cell.classList.add('cell');
 
-  function createMazeGrid() {
-    mazeContainer.innerHTML = '';
-    mazeContainer.style.width = `${mazeSize * 37}px`;
-    mazeContainer.style.height = `${mazeSize * 37}px`;
-
-    mazeGrid = [];
-    for (let y=0; y<mazeSize; y++) {
-      for (let x=0; x<mazeSize; x++) {
-        const cell = document.createElement('div');
-        cell.classList.add('maze-cell');
-        if (mazeData[y][x] === 1) {
+      switch (mazeMap[y][x]) {
+        case 1:
           cell.classList.add('wall');
-        } else {
+          break;
+        case 0:
+        case 2:
           cell.classList.add('path');
-        }
-        mazeContainer.appendChild(cell);
-        mazeGrid.push(cell);
+          break;
+        case 3:
+          cell.classList.add('goal');
+          break;
+      }
+
+      cell.id = `cell-${x}-${y}`;
+      mazeElement.appendChild(cell);
+
+      if (mazeMap[y][x] === 2) {
+        playerPosition = { x, y };
+        cell.classList.add('player');
       }
     }
   }
+}
 
-  function cellIndex(x, y) {
-    return y * mazeSize + x;
+function updatePlayerPosition(newX, newY) {
+  document.getElementById(`cell-${playerPosition.x}-${playerPosition.y}`).classList.remove('player');
+  playerPosition.x = newX;
+  playerPosition.y = newY;
+  document.getElementById(`cell-${newX}-${newY}`).classList.add('player');
+}
+
+function move(dx, dy) {
+  let newX = (playerPosition.x + dx + cols) % cols;
+  let newY = (playerPosition.y + dy + rows) % rows;
+
+  // No se puede pasar por muros
+  if (mazeMap[newY][newX] === 1) return;
+
+  updatePlayerPosition(newX, newY);
+  moves++;
+  movesCounter.textContent = moves;
+
+  checkGoal();
+}
+
+function checkGoal() {
+  if (mazeMap[playerPosition.y][playerPosition.x] === 3) {
+    alert(`¡Felicidades! Ganaste en ${moves} movimientos.`);
+    resetGame();
   }
+}
 
-  function highlightPlayerGoal() {
-    mazeGrid.forEach(cell => {
-      cell.classList.remove('player', 'goal');
-    });
-    mazeGrid[cellIndex(playerPos.x, playerPos.y)].classList.add('player');
-    mazeGrid[cellIndex(goalPos.x, goalPos.y)].classList.add('goal');
+function resetGame() {
+  moves = 0;
+  movesCounter.textContent = moves;
+  createMaze();
+}
+
+window.addEventListener('keydown', e => {
+  switch(e.key) {
+    case 'ArrowUp': e.preventDefault(); move(0, -1); break;
+    case 'ArrowDown': e.preventDefault(); move(0, 1); break;
+    case 'ArrowLeft': e.preventDefault(); move(-1, 0); break;
+    case 'ArrowRight': e.preventDefault(); move(1, 0); break;
   }
+});
 
-  function movePlayer(dx, dy) {
-    if (!canMove) return;
-
-    // Envolvemos posición para permitir salir por un lado y entrar por el otro
-    let nx = (playerPos.x + dx + mazeSize) % mazeSize;
-    let ny = (playerPos.y + dy + mazeSize) % mazeSize;
-
-    if (mazeData[ny][nx] === 1) return;
-
-    mazeGrid[cellIndex(playerPos.x, playerPos.y)].classList.remove('player');
-    playerPos.x = nx;
-    playerPos.y = ny;
-    mazeGrid[cellIndex(nx, ny)].classList.add('player');
-
-    moves++;
-    movesSpan.textContent = moves;
-
-    checkGoal();
-  }
-
-  function checkGoal() {
-    if (playerPos.x === goalPos.x && playerPos.y === goalPos.y) {
-      canMove = false;
-      msg.textContent = '¡Felicidades! Nivel completado 🎉';
-      setTimeout(() => {
-        if (level < 5) {
-          startLevel(level + 1);
-        } else {
-          msg.textContent = '¡Completaste todos los niveles! 👏';
-        }
-      }, 1400);
-    }
-  }
-
-  function startLevel(lvl) {
-    level = lvl;
-    msg.textContent = '';
-    updateLevelButtons();
-    initLevel(level);
-  }
-
-  function updateLevelButtons() {
-    levelButtons.forEach(btn => {
-      btn.classList.toggle('selected', parseInt(btn.dataset.level) === level);
-    });
-  }
-
-  resetBtn.addEventListener('click', () => {
-    initLevel(level);
-  });
-
-  levelButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      startLevel(parseInt(btn.dataset.level));
-    });
-  });
-
-  window.addEventListener('keydown', (e) => {
-    if (!canMove) return;
-    switch(e.key) {
-      case 'ArrowUp': e.preventDefault(); movePlayer(0, -1); break;
-      case 'ArrowDown': e.preventDefault(); movePlayer(0, 1); break;
-      case 'ArrowLeft': e.preventDefault(); movePlayer(-1, 0); break;
-      case 'ArrowRight': e.preventDefault(); movePlayer(1, 0); break;
-    }
-  });
-
-  // Inicia en nivel 1
-  startLevel(1);
+createMaze();
 
 </script>
+
 </body>
 </html>
