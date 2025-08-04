@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Juego de Memoria - Niveles</title>
+<style>
+  body {
+    margin: 0; padding: 0;
+    min-height: 100vh;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(120deg, #90caf9, #b388ff, #ffab91, #fce38a);
+    background-size: 400% 400%;
+    animation: gradientBG 16s ease infinite;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  @keyframes gradientBG {
+    0% {background-position:0% 50%;}
+    50% {background-position:100% 50%;}
+    100% {background-position:0% 50%;}
+  }
+
+  h1 {
+    margin-top: 44px;
+    margin-bottom: 16px;
+    font-size: 2.6em;
+    color: #311b92;
+    text-shadow: 0 4px 20px #fff7;
+    animation: fadeInDown 1s;
+  }
+
+  @keyframes fadeInDown {
+    0% {transform:translateY(-30px);opacity:0;}
+    100%{transform:translateY(0);opacity:1;}
+  }
+
+  .level-select {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 32px;
+    animation: fadeInUp 1s;
+  }
+
+  .level-btn {
+    background: #7c4dff;
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 1.1em;
+    font-weight: bold;
+    padding: 13px 32px;
+    box-shadow: 0 6px 16px #311b9240, 0 2px 4px #fff6;
+    cursor: pointer;
+    outline: none;
+    opacity: 0.93;
+    letter-spacing: 1px;
+    transition: transform .20s, background .25s;
+    position: relative;
+    overflow: hidden;
+  }
+  .level-btn:hover, .level-btn.selected {
+    background: #311b92;
+    color: #ffd740;
+    transform: scale(1.07) rotate(-3deg);
+    opacity: 1;
+  }
+
+  @keyframes fadeInUp {
+    0% {transform:translateY(40px);opacity:0;}
+    100%{transform:translateY(0);opacity:1;}
+  }
+
+  .stats {
+    margin: 10px 0 20px 0;
+    color: #311b92;
+    font-weight: bold;
+    font-size: 1.2em;
+    letter-spacing: 1px;
+    text-shadow: 0 1px 10px #ffffff99;
+    animation: fadeIn 1.4s;
+  }
+
+  @keyframes fadeIn {
+    0% {opacity:0;}
+    100%{opacity:1;}
+  }
+
+  #game-board {
+    display: grid;
+    gap: 18px;
+    justify-content: center;
+    margin-bottom: 34px;
+    min-height: 340px;
+  }
+
+  .card {
+    width: 80px;
+    height: 80px;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 4px 18px #9e9e9e40, 0 2px 4px #bdbdbd40;
+    position: relative;
+    transform: scale(1);
+    cursor: pointer;
+    perspective: 700px;
+    transition: transform 0.20s cubic-bezier(.32,1.51,.5,1.29);
+    user-select: none;
+    outline: none;
+    animation: fadeInCard 0.7s;
+  }
+
+  .card.flipped .card-inner {
+    transform: rotateY(180deg);
+  }
+  .card.matched {
+    animation: matchPulse 0.8s;
+    opacity: 0.57;
+    cursor: default;
+  }
+
+  @keyframes matchPulse {
+    0% { box-shadow: 0 0 0 0 #ffd740aa;}
+    100%{ box-shadow: 0 0 40px 17px #ffd74000;}
+  }
+  @keyframes fadeInCard {
+    0% {opacity: 0; transform: scale(0.6);}
+    100%{opacity: 1; transform: scale(1);}
+  }
+
+  .card-inner {
+    width: 100%; height: 100%;
+    position: absolute;
+    transition: transform .6s cubic-bezier(.9,.27,.4,1.51);
+    transform-style: preserve-3d;
+    border-radius: 14px;
+  }
+  .card-front, .card-back {
+    width: 100%; height: 100%;
+    position: absolute;
+    backface-visibility: hidden;
+    border-radius: 14px;
+    display: flex;justify-content: center;align-items: center;
+    font-size: 1.9em;
+  }
+  .card-front {
+    background: linear-gradient(135deg,#9575cd 90%,#fff 160%);
+    color: transparent;
+  }
+  .card-back {
+    background: linear-gradient(135deg, #ffd740 70%, #fffde7 120%);
+    color: #111;
+    font-size: 2.3em;
+    font-weight: bold;
+    transform: rotateY(180deg);
+    box-shadow: 0 2px 8px #ffecb3b8;
+  }
+
+  #reset-btn {
+    margin-top: 12px;
+    background: #ffab00;
+    color: #2d2d2d;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.05em;
+    font-weight: bold;
+    padding: 12px 23px;
+    box-shadow: 0 3px 10px #ffd74040;
+    cursor: pointer;
+    outline: none;
+    transition: background .18s;
+  }
+  #reset-btn:hover {
+    background: #ffd740;
+    color: #4a148c;
+  }
+
+  #back-btn {
+    position: fixed;
+    top: 18px; left: 18px;
+    background: #311b92ee;
+    color: #ffd740;
+    border: none;
+    border-radius: 50px;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 10px 23px;
+    box-shadow: 0 2px 8px #b8b8ffb8;
+    cursor: pointer;
+    outline: none;
+    transition: background .2s;
+    z-index:10;
+  }
+  #back-btn:hover{
+    background: #7c4dff;
+    color: #fff;
+  }
+
+  #msg {
+    font-size: 1.5em;
+    color: #d84315;
+    margin: 17px 0 13px 0;
+    font-weight: bold;
+    text-shadow: 0 2px 12px #fff6;
+    opacity: 0.93;
+    min-height: 28px;
+  }
+</style>
+</head>
+<body>
+<button id="back-btn" onclick="location.href='index.html'">← Menú principal</button>
+<h1>Juego de Memoria</h1>
+<div class="level-select" id="level-bar">
+  <button class="level-btn selected" onclick="startLevel(1)">Nivel 1</button>
+  <button class="level-btn" onclick="startLevel(2)">Nivel 2</button>
+  <button class="level-btn" onclick="startLevel(3)">Nivel 3</button>
+  <button class="level-btn" onclick="startLevel(4)">Nivel 4</button>
+  <button class="level-btn" onclick="startLevel(5)">Nivel 5</button>
+</div>
+<div class="stats" id="stats-bar">
+  Movimientos restantes: <span id="moves-left">--</span> &nbsp; | &nbsp; Aciertos: <span id="matches">0</span>
+</div>
+<div id="game-board"></div>
+<div id="msg"></div>
+<button id="reset-btn" onclick="resetLevel()">Reiniciar nivel</button>
+
+<script>
+const symbolsSet = [
+  ['🍎','🍌','🍓','🍒','🍉','🍇','🥝','🍍'],
+  ['⚽','🏀','🏈','⚾','🏐','🎾','🏉','🥎','⛳'],
+  ['🚗','✈️','🚀','🚢','🛴','🚕','🚲','🚂','🛸','🚁'],
+  ['🐶','🐱','🐰','🦁','🐮','🐷','🦊','🐸','🐵','🦉','🦋'],
+  ['🎩','👑','🦄','🍀','🎲','🎻','🎸','📚','🧩','🛡','⚓','🌈'],
+];
+
+const levels = [
+  {level: 1, pairs: 4, moves: 14},
+  {level: 2, pairs: 6, moves: 18},
+  {level: 3, pairs: 8, moves: 21},
+  {level: 4, pairs:10, moves: 24},
+  {level: 5, pairs:12, moves: 26},
+];
+let currentLevel = 1;
+let selectedSymbols = [], cards = [];
+let movesLeft = 0, matchedPairs = 0, canClick = true;
+let firstCard = null, secondCard = null;
+const board = document.getElementById('game-board');
+const movesSpan = document.getElementById('moves-left');
+const matchesSpan = document.getElementById('matches');
+const msg = document.getElementById('msg');
+
+function startLevel(n, resetMsg = true) {
+  currentLevel = n;
+  // Resalta el botón nivel elegido
+  document.querySelectorAll('.level-btn').forEach((btn, i) => {
+    btn.classList.toggle('selected', i === n-1);
+  });
+  setupLevel(resetMsg);
+}
+
+function setupLevel(resetMsg = true) {
+  msg.textContent = resetMsg ? "" : msg.textContent;
+  board.innerHTML = '';
+  firstCard = null; secondCard = null;
+  matchedPairs = 0;
+  const {pairs, moves} = levels[currentLevel-1];
+  movesLeft = moves;
+  updateStats();
+  // Elige símbolos para el nivel y crea el mazo
+  const symbols = symbolsSet[currentLevel-1].slice(0, pairs);
+  selectedSymbols = shuffle([...symbols, ...symbols]);
+  const cols = pairs <= 4 ? 4 : pairs <= 6 ? 4 : pairs <= 8 ? 4 : 5;
+  const rows = Math.ceil((pairs*2) / cols);
+  board.style.gridTemplateColumns = `repeat(${cols}, 80px)`;
+  board.style.gridTemplateRows = `repeat(${rows}, 80px)`;
+  // Crea cartas
+  cards = [];
+  selectedSymbols.forEach((symbol, i) => {
+    let c = document.createElement('div');
+    c.className = "card";
+    c.tabIndex = 0;
+    c.innerHTML = `
+      <div class="card-inner">
+        <div class="card-front"></div>
+        <div class="card-back">${symbol}</div>
+      </div>
+    `;
+    c.dataset.symbol = symbol;
+    c.dataset.index = i;
+    c.addEventListener('click', () => flipCard(c));
+    c.addEventListener('keydown', (e)=>{if(e.key==='Enter' || e.key===' '){flipCard(c);}});
+    board.appendChild(c);
+    cards.push(c);
+  });
+  showAllCards(950, 1300, ()=>hideAllUnmatched());
+}
+
+function resetLevel() {
+  setupLevel(false);
+  msg.textContent = "";
+}
+
+function showAllCards(delay=900, hideDelay=1400, cb) {
+  canClick = false;
+  cards.forEach(c=>{
+    c.classList.add('flipped');
+  });
+  setTimeout(() => {
+    hideAllUnmatched();
+    if(cb) cb();
+  }, hideDelay);
+}
+
+function hideAllUnmatched() {
+  cards.forEach(c => {
+    if(!c.classList.contains('matched')) c.classList.remove('flipped');
+  });
+  canClick = true;
+}
+
+function flipCard(card) {
+  if (!canClick || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+  card.classList.add('flipped');
+  if (!firstCard) {
+    firstCard = card;
+    return;
+  }
+  secondCard = card;
+  canClick = false;
+  movesLeft--;
+  updateStats();
+  if (firstCard.dataset.symbol === secondCard.dataset.symbol) {
+    firstCard.classList.add('matched'); secondCard.classList.add('matched');
+    matchedPairs++;
+    updateStats();
+    if(matchedPairs === levels[currentLevel-1].pairs) {
+      setTimeout(()=>msg.textContent='¡Felicidades! Nivel superado 🎉',650);
+      setTimeout(() => {
+        if(currentLevel < 5)
+          startLevel(currentLevel+1,true);
+      },1800);
+    } else {
+      msg.textContent = getRandomMessage('acierto');
+    }
+    resetFlip();
+    canClick = true;
+  } else {
+    msg.textContent = getRandomMessage('error');
+    setTimeout(()=>{
+      firstCard.classList.remove('flipped');
+      secondCard.classList.remove('flipped');
+      resetFlip();
+      canClick = true;
+    }, 810);
+  }
+  if (movesLeft <= 0 && matchedPairs < levels[currentLevel-1].pairs) {
+    setTimeout(()=> {
+      canClick=false;
+      msg.textContent = '¡Te quedaste sin movimientos! 💔 Intenta de nuevo.';
+      setTimeout(resetLevel, 1350);
+    }, 1000);
+  }
+}
+
+function resetFlip() {
+  firstCard = null; secondCard = null;
+}
+
+function updateStats() {
+  movesSpan.textContent = movesLeft;
+  matchesSpan.textContent = matchedPairs;
+}
+
+function shuffle(arr) {
+  for(let i = arr.length-1; i > 0; i--) {
+      let j = Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function getRandomMessage(type) {
+  const msgs = {
+    acierto: [
+      "¡Muy bien! 🤩", "¡Correcto! 👍", "¡Lo lograste! 🙌", "¡Sigue así! ⭐", "¡Perfecto! 😃"
+    ],
+    error: [
+      "No era ese... 😬", "Intenta otra vez 🙈", "¡Oops!", "No coinciden 😣", "¡Vuelve a intentarlo!"
+    ]
+  };
+  return msgs[type][Math.floor(Math.random()*msgs[type].length)];
+}
+
+// Inicializa en nivel 1
+startLevel(1);
+</script>
+</body>
+</html>
